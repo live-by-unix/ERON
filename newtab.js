@@ -2,6 +2,7 @@ const video = document.getElementById('video-bg');
 const img = document.getElementById('image-bg');
 const upload = document.getElementById('upload');
 const timeDisplay = document.getElementById('time');
+const audioNotice = document.getElementById('audio-notice');
 
 function updateClock() {
     const now = new Date();
@@ -13,41 +14,32 @@ updateClock();
 upload.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const data = event.target.result;
-        saveToDB(data, file.type);
-        displayMedia(data, file.type);
-    };
-    reader.readAsDataURL(file);
+    saveToDB(file);
 });
 
-function displayMedia(data, type) {
-    if (type.includes('video')) {
+function displayMedia(fileBlob) {
+    const url = URL.createObjectURL(fileBlob);
+    if (fileBlob.type.includes('video')) {
         img.style.display = 'none';
         video.style.display = 'block';
-        video.src = data;
-        video.muted = false;
-        video.play().catch(err => {
-            video.muted = true;
-            video.play();
-        });
+        video.src = url;
+        video.muted = true;
+        video.play();
     } else {
         video.style.display = 'none';
         img.style.display = 'block';
-        img.style.backgroundImage = `url(${data})`;
-        img.style.backgroundSize = 'cover';
-        img.style.backgroundPosition = 'center';
+        img.style.backgroundImage = `url(${url})`;
+        audioNotice.style.display = 'none';
     }
 }
 
-function saveToDB(data, type) {
+function saveToDB(file) {
     const request = indexedDB.open("EronDB", 1);
     request.onupgradeneeded = (e) => e.target.result.createObjectStore("wallpapers");
     request.onsuccess = (e) => {
         const db = e.target.result;
-        db.transaction("wallpapers", "readwrite").objectStore("wallpapers").put({ data, type }, "current");
+        db.transaction("wallpapers", "readwrite").objectStore("wallpapers").put(file, "current");
+        displayMedia(file);
     };
 }
 
@@ -58,16 +50,17 @@ function loadWallpaper() {
         const db = e.target.result;
         const getReq = db.transaction("wallpapers").objectStore("wallpapers").get("current");
         getReq.onsuccess = () => {
-            if (getReq.result) displayMedia(getReq.result.data, getReq.result.type);
+            if (getReq.result) displayMedia(getReq.result);
         };
     };
 }
 
-document.body.addEventListener('click', () => {
-    if (video.src && video.muted) {
+window.addEventListener('click', () => {
+    if (video.style.display === 'block') {
         video.muted = false;
         video.play();
+        audioNotice.style.display = 'none';
     }
-}, { once: true });
+});
 
 loadWallpaper();
