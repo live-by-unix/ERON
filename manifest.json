@@ -2,13 +2,13 @@
   "manifest_version": 3,
   "name": "Eron - Video Wallpapers",
   "version": "1.0",
-  "description": "Upload GIF, MP4, and MOV files as your Chrome wallpaper with full audio support.",
+  "description": "Upload GIF, MP4, and MOV files as your Chrome wallpaper.",
   "permissions": ["storage", "unlimitedStorage"],
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },
   "action": {
-    "default_title": "Eron Settings"
+    "default_title": "Eron"
   },
   "icons": {
     "128": "icon.png"
