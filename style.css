@@ -49,4 +49,5 @@ body, html {
     font-size: 0.7rem;
     opacity: 0.6;
     letter-spacing: 1px;
+    display: none;
 }
