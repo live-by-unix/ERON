@@ -11,12 +11,6 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-upload.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    saveToDB(file);
-});
-
 function displayMedia(fileBlob) {
     const url = URL.createObjectURL(fileBlob);
     if (fileBlob.type.includes('video')) {
@@ -24,7 +18,9 @@ function displayMedia(fileBlob) {
         video.style.display = 'block';
         video.src = url;
         video.muted = true;
-        video.play();
+        video.play().catch(() => {
+            audioNotice.style.display = 'block';
+        });
     } else {
         video.style.display = 'none';
         img.style.display = 'block';
@@ -33,25 +29,34 @@ function displayMedia(fileBlob) {
     }
 }
 
-function saveToDB(file) {
-    const request = indexedDB.open("EronDB", 1);
-    request.onupgradeneeded = (e) => e.target.result.createObjectStore("wallpapers");
-    request.onsuccess = (e) => {
-        const db = e.target.result;
-        db.transaction("wallpapers", "readwrite").objectStore("wallpapers").put(file, "current");
-        displayMedia(file);
-    };
+function getDB() {
+    return new Promise((resolve) => {
+        const request = indexedDB.open("EronDB", 1);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains("wallpapers")) {
+                db.createObjectStore("wallpapers");
+            }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+    });
 }
 
-function loadWallpaper() {
-    const request = indexedDB.open("EronDB", 1);
-    request.onupgradeneeded = (e) => e.target.result.createObjectStore("wallpapers");
-    request.onsuccess = (e) => {
-        const db = e.target.result;
-        const getReq = db.transaction("wallpapers").objectStore("wallpapers").get("current");
-        getReq.onsuccess = () => {
-            if (getReq.result) displayMedia(getReq.result);
-        };
+upload.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const db = await getDB();
+    const tx = db.transaction("wallpapers", "readwrite");
+    tx.objectStore("wallpapers").put(file, "current");
+    tx.oncomplete = () => displayMedia(file);
+});
+
+async function loadWallpaper() {
+    const db = await getDB();
+    const tx = db.transaction("wallpapers", "readonly");
+    const getReq = tx.objectStore("wallpapers").get("current");
+    getReq.onsuccess = () => {
+        if (getReq.result) displayMedia(getReq.result);
     };
 }
 
